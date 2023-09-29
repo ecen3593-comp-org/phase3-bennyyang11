@@ -1,5 +1,5 @@
 {
-  "sdkPath": "/home/project/ia_phase3/work/ia/sdk",
+  "sdkPath": "/home/project/phase3_ia/work/ia/sdk",
   "iaOrCa": "ia",
   "compileConfigOptions": {
     "compilerOptimization": "0",
