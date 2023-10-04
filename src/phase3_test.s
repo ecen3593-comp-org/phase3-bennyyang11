@@ -89,110 +89,108 @@ _start:
     NO_BLTU_ERROR:
 
 
-    //ADD Test
-    slli x5, x5, 1  // Prepare x5 for ADD test error bit
+     // Initialize for ADD check
+    slli x5, x5, 1
     li x2, 0x00
     li x3, 0x01
     li x4, 0x01
-    li x6, 0  // Initialize a counter for the bit position
-    ADD_LOOP:
-        add x5, x2, x3  // Add x2 and x3 and store the result in x5
-        bne x5, x4, ADD_ERROR  // If x5 is not equal to x4, branch to ADD_ERROR
-        slli x2, x2, 1  // Shift x2 left by 1 bit
-        slli x3, x3, 1  // Shift x3 left by 1 bit
-        slli x4, x4, 1  // Shift x4 left by 1 bit
-        addi x6, x6, 1  // Increment the bit position counter
-        li x7, 32  // Load 32 into register x7
-        blt x6, x7, ADD_LOOP  // Use register x7 as the second operand
+    li x6, 0
     
-    ADD_ERROR:
-        li x7, 0x2000  // 0x2000 represents the error bit for ADD instruction (bit 13)
-        slli x6, x6, 8  // Shift the bit position counter to the correct position (bits 12:8)
-        or x1, x1, x7  // Set the error bit in x1
-        or x1, x1, x6  // Set the failing bit number in x1
-
+    // Begin ADD Operation Loop
+    ADD_CHK_LOOP:
+        add x5, x2, x3
+        bne x5, x4, ADD_ERR
+        slli x2, x2, 1
+        slli x3, x3, 1
+        slli x4, x4, 1
+        addi x6, x6, 1
+        li x7, 32
+        blt x6, x7, ADD_CHK_LOOP
     
-    ADD_SUCCESS:
-
-
-
-    //SRA Test
+    // On ADD Error
+    ADD_ERR:
+        li x7, 0x2000
+        slli x6, x6, 8
+        or x1, x1, x7
+        or x1, x1, x6
+    
+    // Successful ADD Check
+    ADD_PASS:
+    
+    //SRA Verification
     slli x5, x5, 1
-    li x2, 0x80000000  // Set the MSB
-    li x6, 31  // Load immediate 31 to a register
-    sra x4, x2, x6  // Shift right arithmetic
-    li x6, 0xFFFFFFFF  // Expected result is all 1s due to sign extension
-    bne x4, x6, SRA_ERROR
+    li x2, 0x80000000
+    li x6, 31
+    sra x4, x2, x6
+    li x6, 0xFFFFFFFF
+    bne x4, x6, SRA_FAIL
     
-    SRA_ERROR:
-        or x1, x1, x5  // Set the corresponding bit in x1
-
-    //SRL Test
+    SRA_FAIL:
+        or x1, x1, x5
+    
+    //SRL Verification
     slli x5, x5, 1
-    lui x2, 0x8000  // Load the upper 20 bits
-    ori x2, x2, 0x0000  // Set the lower 12 bits
-    li x7, 31  // Load 31 into register x7
-    srl x4, x2, x7  // Use register x7 as the second operand
-    bne x4, x6, SRL_ERROR
-    SRL_ERROR:
-        or x1, x1, x5  // Set the corresponding bit in x1
-
-    //LW Test
-    slli x5, x5, 1  // Shift left x5 by 1 to prepare for the next test
+    lui x2, 0x8000
+    ori x2, x2, 0x0000
+    li x7, 31
+    srl x4, x2, x7
+    bne x4, x6, SRL_FAIL
     
-    // Store each byte of the word
+    SRL_FAIL:
+        or x1, x1, x5
+    
+    //LW Verification
+    slli x5, x5, 1
+    
+    // Prepare memory for LW Test
     li x6, 0x12
-    sb x6, 0x103(x0)  // Store byte to memory address 0x103
+    sb x6, 0x103(x0)
     
     li x6, 0x34
-    sb x6, 0x102(x0)  // Store byte to memory address 0x102
+    sb x6, 0x102(x0)
     
     li x6, 0x56
-    sb x6, 0x101(x0)  // Store byte to memory address 0x101
+    sb x6, 0x101(x0)
     
     li x6, 0x78
-    sb x6, 0x100(x0)  // Store byte to memory address 0x100
+    sb x6, 0x100(x0)
     
-    // Load the word and compare
-    lw x4, 0x100(x0)  // Load word from memory address 0x100
-    li x7, 0x12345678  // Expected value after loading the word
-    bne x4, x7, LW_ERROR  // If x4 is not equal to x7, branch to LW_ERROR
+    // Execute LW and compare
+    lw x4, 0x100(x0)
+    li x7, 0x12345678
+    bne x4, x7, LW_FAIL
     
-    LW_ERROR:
-        or x1, x1, x5  // Set the corresponding bit in x1
-
-
-
-    //SW Test
-    slli x5, x5, 1  // Shift left x5 by 1 to prepare for the next test
-    li x2, 0x12345678  // Word value to store
-    sw x2, 0x200(x0)  // Store word to memory address 0x200
+    LW_FAIL:
+        or x1, x1, x5
     
-    // Load and check each byte of the stored word
-    lb x4, 0x200(x0)  // Load byte from memory address 0x200
-    li x6, 0x78  // Expected value for the first byte
-    bne x4, x6, SW_ERROR  // If x4 is not equal to x6, branch to SW_ERROR
+    //SW Verification
+    slli x5, x5, 1
+    li x2, 0x12345678
+    sw x2, 0x200(x0)
     
-    lb x4, 0x201(x0)  // Load byte from memory address 0x201
-    li x6, 0x56  // Expected value for the second byte
-    bne x4, x6, SW_ERROR  // If x4 is not equal to x6, branch to SW_ERROR
+    // Verify each byte after SW
+    lb x4, 0x200(x0)
+    li x6, 0x78
+    bne x4, x6, SW_FAIL
     
-    lb x4, 0x202(x0)  // Load byte from memory address 0x202
-    li x6, 0x34  // Expected value for the third byte
-    bne x4, x6, SW_ERROR  // If x4 is not equal to x6, branch to SW_ERROR
+    lb x4, 0x201(x0)
+    li x6, 0x56
+    bne x4, x6, SW_FAIL
     
-    lb x4, 0x203(x0)  // Load byte from memory address 0x203
-    li x6, 0x12  // Expected value for the fourth byte
-    bne x4, x6, SW_ERROR  // If x4 is not equal to x6, branch to SW_ERROR
+    lb x4, 0x202(x0)
+    li x6, 0x34
+    bne x4, x6, SW_FAIL
     
-    j END_SW_TEST  // Jump to the end of the SW test if no error occurred
+    lb x4, 0x203(x0)
+    li x6, 0x12
+    bne x4, x6, SW_FAIL
     
-    SW_ERROR:
-        or x1, x1, x5  // Set the corresponding bit in x1
+    j SW_DONE
     
-    END_SW_TEST:
-
-
+    SW_FAIL:
+        or x1, x1, x5
+    
+    SW_DONE:
 
 
     //SUB Test
